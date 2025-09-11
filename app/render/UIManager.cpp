@@ -20,7 +20,7 @@ struct UIManager::Impl {
     
     // Button properties
     sf::Vector2f buttonSize{120.0f, 40.0f};
-    sf::Vector2f buttonPosition{20.0f, 60.0f};
+    sf::Vector2f buttonPosition{0.0f, 0.0f}; // Will be calculated based on window size
     bool buttonHovered = false;
     bool buttonPressed = false;
     
@@ -44,15 +44,32 @@ UIManager::~UIManager() {
 void UIManager::initialize(sf::RenderTarget* target) {
     m_impl->renderTarget = target;
     
-    // Try to load a default font (SFML has a built-in default font)
-    // In a real application, you would load a specific font file
-    if (!m_impl->font.loadFromFile("arial.ttf")) {
-        // If no font file is available, we'll use SFML's default font
-        // Note: SFML doesn't have a built-in font, so in practice you'd need to include one
-        std::cout << "[UIManager] Warning: Could not load font file, using default rendering" << std::endl;
-        m_impl->fontLoaded = false;
-    } else {
+    // Try to load a font file, first from assets, then system fonts
+    bool fontLoaded = false;
+    
+    // Try to load from assets folder
+    if (m_impl->font.loadFromFile("assets/fonts/arial.ttf")) {
+        fontLoaded = true;
+    }
+    // Try Windows system font
+    else if (m_impl->font.loadFromFile("C:/Windows/Fonts/arial.ttf")) {
+        fontLoaded = true;
+    }
+    // Try another common Windows font
+    else if (m_impl->font.loadFromFile("C:/Windows/Fonts/calibri.ttf")) {
+        fontLoaded = true;
+    }
+    // Try Segoe UI
+    else if (m_impl->font.loadFromFile("C:/Windows/Fonts/segoeui.ttf")) {
+        fontLoaded = true;
+    }
+    
+    if (fontLoaded) {
         m_impl->fontLoaded = true;
+        std::cout << "[UIManager] Font loaded successfully" << std::endl;
+    } else {
+        std::cout << "[UIManager] Warning: Could not load any font file, text will not be visible" << std::endl;
+        m_impl->fontLoaded = false;
     }
     
     createUI();
@@ -60,6 +77,11 @@ void UIManager::initialize(sf::RenderTarget* target) {
 }
 
 void UIManager::createUI() {
+    // Calculate button position (top-right corner)
+    float buttonX = m_impl->windowWidth - m_impl->buttonSize.x - 20.0f;
+    float buttonY = 20.0f;
+    m_impl->buttonPosition = sf::Vector2f(buttonX, buttonY);
+    
     // Setup simulation button
     m_impl->simulationButton.setSize(m_impl->buttonSize);
     m_impl->simulationButton.setPosition(m_impl->buttonPosition);
@@ -74,7 +96,7 @@ void UIManager::createUI() {
     m_impl->simulationButtonText.setCharacterSize(16);
     m_impl->simulationButtonText.setFillColor(sf::Color::White);
     
-    // Setup mode indicator
+    // Setup mode indicator (top-left corner)
     if (m_impl->fontLoaded) {
         m_impl->modeIndicator.setFont(m_impl->font);
     }
@@ -205,6 +227,12 @@ void UIManager::setSimulationState(SimulationState state) {
 void UIManager::setWindowSize(unsigned int width, unsigned int height) {
     m_impl->windowWidth = width;
     m_impl->windowHeight = height;
+    
+    // Recalculate button position (top-right corner)
+    float buttonX = static_cast<float>(width) - m_impl->buttonSize.x - 20.0f;
+    float buttonY = 20.0f;
+    m_impl->buttonPosition = sf::Vector2f(buttonX, buttonY);
+    m_impl->simulationButton.setPosition(m_impl->buttonPosition);
     
     // Update debug text position
     m_impl->debugText.setPosition(20.0f, static_cast<float>(height) - 100.0f);
